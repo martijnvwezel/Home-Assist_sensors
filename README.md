@@ -9,3 +9,6 @@ When you do not have Home-assistant you can use this thermostat.
 
 # ESP Home Assistant OpenTerm
 Connect any compatible OpenTerm CV with Home Assistant. Using MQTT
+
+# ESP thermal-camera
+The thermal camera is connected using the esp to wifi. Goal is to make a hotspot people can join to go to the webpage to stream the realtime camera.
