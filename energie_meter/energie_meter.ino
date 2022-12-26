@@ -298,7 +298,7 @@ bool decode_telegram(int len) {
     // 0-1:24.2.1 = Gas (DSMR v4.0) on Kaifa MA105 meter
     if (strncmp(telegram, "0-1:24.2.1", strlen("0-1:24.2.1")) == 0) {
         long gas = getValue(telegram, len, '(', '*');
-        if (gas > 0 && gas > (4 * 1000 * 1000) and gas < (8 * 1000 * 1000)) {
+        if (gas > 0 && gas > (2 * 1000) and gas < (50 * 1000 * 1000)) {
             GAS_METER_M3 = gas;
         }
     }
