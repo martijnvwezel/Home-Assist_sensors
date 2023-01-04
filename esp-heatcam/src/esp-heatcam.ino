@@ -12,10 +12,6 @@
 #endif
 
 #include <Adafruit_MLX90640.h>
-// #include "esp_camera.h"
-// #include <WiFi.h>
-// #include "esp_timer.h"
-
 #include "settings.h"
 #include "Arduino.h"
 #include "fb_gfx.h"
@@ -23,15 +19,11 @@
 #include <soc/rtc_cntl_reg.h> //disable brownout problems
 #include <esp_http_server.h>
 
-// #include "conversions/img_converter_blieb.h"
-// #include <img_converter.h>
 
 Adafruit_MLX90640 mlx;
 camera_fb_t       fb;
 
 
-const char* ssid     = "ssid";
-const char* password = "password";
 
 
 // low range of the sensor (this will be blue on the screen)
@@ -40,6 +32,8 @@ const char* password = "password";
 // high range of the sensor (this will be red on the screen)
 #define MAXTEMP (float)35
 
+float frame[32 * 24]; // buffer for full frame of temperatures
+
 #define PART_BOUNDARY "123456789000000000000987654321"
 static const char* _STREAM_CONTENT_TYPE = "multipart/x-mixed-replace;boundary=" PART_BOUNDARY;
 static const char* _STREAM_BOUNDARY     = "\r\n--" PART_BOUNDARY "\r\n";
@@ -47,6 +41,9 @@ static const char* _STREAM_PART         = "Content-Type: image/jpeg\r\nContent-L
 
 httpd_handle_t stream_httpd = NULL;
 static uint    sent         = 0;
+
+
+
 
 bool fmt_2_jpg(uint8_t* src, size_t src_len, uint16_t width, uint16_t height, pixformat_t format, uint8_t quality, uint8_t** out, size_t* out_len) {
     int      jpg_buf_len = 64 * 1024;
@@ -85,12 +82,12 @@ static esp_err_t stream_handler(httpd_req_t* req) {
         Serial.println(res);
         return res;
     }
-        float frame[32 * 24]; // buffer for full frame of temperatures
-        if (mlx.getFrame(frame) != 0) {
-            Serial.println("Failed");
-        } else {
-            Serial.println("Got a frame..");
-        }
+
+    if (mlx.getFrame(frame) != 0) {
+        Serial.println("Failed");
+    } else {
+        Serial.println("Got a frame..");
+    }
 
     Serial.println("Start While loop");
     while (true) {
@@ -98,7 +95,6 @@ static esp_err_t stream_handler(httpd_req_t* req) {
         Serial.print("foto: ");
         Serial.println(sent++);
         // ! somehow here it goes wrong, when taking the second frame it crashes
-        // float frame[32 * 24]; // buffer for full frame of temperatures
         // if (mlx.getFrame(frame) != 0) {
         //     Serial.println("Failed");
         // } else {
@@ -151,7 +147,6 @@ static esp_err_t stream_handler(httpd_req_t* req) {
             Serial.println(res);
         }
 
-        _jpg_buf = NULL;
 
         if (_jpg_buf) {
             free(_jpg_buf);
@@ -163,8 +158,7 @@ static esp_err_t stream_handler(httpd_req_t* req) {
         Serial.printf("MJPG: %uB\n", (uint32_t)(_jpg_buf_len));
         Serial.print((millis() - timestamp) / 2);
         Serial.println(" ms per frame (2 frames per display)");
-        Serial.print(2000.0 / (millis() - timestamp));
-        Serial.println(" FPS (2 frames per display)");
+
     }
     return res;
 }

@@ -1,5 +1,12 @@
 #include "jpge_.h"
 
+
+const char* ssid     = "ssid";
+const char* password = "password";
+
+
+
+
 typedef enum {
     PIXFORMAT_RGB565,    // 2BPP/RGB565
     PIXFORMAT_YUV422,    // 2BPP/YUV422
