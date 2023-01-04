@@ -1,4 +1,5 @@
 #ifdef ESP32
+#include <Arduino.h>
 #include <WiFi.h>
 #include <WiFiClient.h>
 #include <WebServer.h>
@@ -11,6 +12,9 @@
 #endif
 
 #include <Adafruit_MLX90640.h>
+// #include "esp_camera.h"
+// #include <WiFi.h>
+// #include "esp_timer.h"
 
 #include "settings.h"
 #include "Arduino.h"
@@ -24,7 +28,11 @@
 
 Adafruit_MLX90640 mlx;
 camera_fb_t       fb;
-float             frame[32 * 24]; // buffer for full frame of temperatures
+
+
+const char* ssid     = "ssid";
+const char* password = "password";
+
 
 // low range of the sensor (this will be blue on the screen)
 #define MINTEMP (float)20
@@ -39,7 +47,8 @@ static const char* _STREAM_PART         = "Content-Type: image/jpeg\r\nContent-L
 
 httpd_handle_t stream_httpd = NULL;
 static uint    sent         = 0;
-bool           fmt_2_jpg(uint8_t* src, size_t src_len, uint16_t width, uint16_t height, pixformat_t format, uint8_t quality, uint8_t** out, size_t* out_len) {
+
+bool fmt_2_jpg(uint8_t* src, size_t src_len, uint16_t width, uint16_t height, pixformat_t format, uint8_t quality, uint8_t** out, size_t* out_len) {
     int      jpg_buf_len = 64 * 1024;
     uint8_t* jpg_buf     = (uint8_t*)malloc(jpg_buf_len);
     if (jpg_buf == NULL) {
@@ -76,24 +85,33 @@ static esp_err_t stream_handler(httpd_req_t* req) {
         Serial.println(res);
         return res;
     }
-    Serial.println("Start While loop");
-    while (true) {
-        Serial.print("foto: ");
-        Serial.println(sent++);
+        float frame[32 * 24]; // buffer for full frame of temperatures
         if (mlx.getFrame(frame) != 0) {
             Serial.println("Failed");
-            continue;
         } else {
             Serial.println("Got a frame..");
         }
+
+    Serial.println("Start While loop");
+    while (true) {
+        uint32_t timestamp = millis();
+        Serial.print("foto: ");
+        Serial.println(sent++);
+        // ! somehow here it goes wrong, when taking the second frame it crashes
+        // float frame[32 * 24]; // buffer for full frame of temperatures
+        // if (mlx.getFrame(frame) != 0) {
+        //     Serial.println("Failed");
+        // } else {
+        //     Serial.println("Got a frame..");
+        // }
 
         Serial.println("Foto:");
         int colorTemp;
         for (uint8_t h = 0; h < 24; h++) {
             for (uint8_t w = 0; w < 32; w++) {
                 float t = frame[h * 32 + w];
-                Serial.print(t, 1);
-                Serial.print(", ");
+                // Serial.print(t, 1);
+                // Serial.print(", ");
 
                 t = min(t, MAXTEMP);
                 t = max(t, MINTEMP);
@@ -101,7 +119,8 @@ static esp_err_t stream_handler(httpd_req_t* req) {
                 uint8_t colorIndex = map(t, MINTEMP, MAXTEMP, 0, 255);
                 colorIndex         = constrain(colorIndex, 0, 255);
 
-                fb.buf[h * 32 + w] = (uint8_t)frame[h * 32 + w]; // camColors[colorIndex];
+                fb.buf[h * 32 + w] = (uint8_t)camColors[colorIndex];
+                // Serial.print(fb.buf[h * 32 + w]);
             }
         }
         Serial.println("");
@@ -138,10 +157,14 @@ static esp_err_t stream_handler(httpd_req_t* req) {
             free(_jpg_buf);
             _jpg_buf = NULL;
         }
-        if (res != ESP_OK) {
-            break;
-        }
+        // if (res != ESP_OK) {
+        //     break;
+        // }
         Serial.printf("MJPG: %uB\n", (uint32_t)(_jpg_buf_len));
+        Serial.print((millis() - timestamp) / 2);
+        Serial.println(" ms per frame (2 frames per display)");
+        Serial.print(2000.0 / (millis() - timestamp));
+        Serial.println(" FPS (2 frames per display)");
     }
     return res;
 }

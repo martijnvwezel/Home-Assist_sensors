@@ -20,7 +20,19 @@ typedef struct {
     struct timeval timestamp;   /*!< Timestamp since boot of the first DMA buffer of the frame */
 } camera_fb_t;
 
+// typedef struct
+// {
+//     uint8_t *buf;                   /*!< Pointer to the pixel data */
+//     size_t len = 24 * 32;           /*!< Length of the buffer in bytes */
+//     size_t width = 32;              /*!< Width of the buffer in pixels */
+//     size_t height = 24;             /*!< Height of the buffer in pixels */
+//     pixformat_t format = PIXFORMAT_GRAYSCALE; /*!< Format of the pixel data */
+//     struct timeval timestamp;       /*!< Timestamp since boot of the first DMA buffer of the frame */
+// } camera_fb_t_fake;
 
+// camera_fb_t *fb = camera_fb_t_fake;
+
+// the colors we will be using
 // the colors we will be using
 const uint16_t camColors[] = {
     0x480F, 0x400F, 0x400F, 0x400F, 0x4010, 0x3810, 0x3810, 0x3810, 0x3810, 0x3010, 0x3010, 0x3010, 0x2810, 0x2810, 0x2810, 0x2810, 0x2010, 0x2010, 0x2010, 0x1810, 0x1810, 0x1811, 0x1811, 0x1011, 0x1011, 0x1011, 0x0811, 0x0811, 0x0811, 0x0011, 0x0011, 0x0011, 0x0011, 0x0011, 0x0031, 0x0031, 0x0051, 0x0072, 0x0072, 0x0092, 0x00B2, 0x00B2, 0x00D2, 0x00F2, 0x00F2, 0x0112, 0x0132, 0x0152, 0x0152, 0x0172, 0x0192, 0x0192, 0x01B2, 0x01D2, 0x01F3, 0x01F3, 0x0213, 0x0233, 0x0253, 0x0253, 0x0273, 0x0293, 0x02B3, 0x02D3, 0x02D3, 0x02F3, 0x0313, 0x0333, 0x0333, 0x0353, 0x0373, 0x0394, 0x03B4, 0x03D4, 0x03D4, 0x03F4, 0x0414, 0x0434, 0x0454, 0x0474, 0x0474, 0x0494, 0x04B4, 0x04D4, 0x04F4, 0x0514,
@@ -61,9 +73,6 @@ public:
         return index;
     }
 };
-
-const char* ssid     = "ssid";
-const char* password = "password";
 
 static IRAM_ATTR void convert_line_format(uint8_t* src, pixformat_t format, uint8_t* dst, size_t width, size_t in_channels, size_t line) {
     int i = 0, o = 0, l = 0;
