@@ -19,12 +19,8 @@
 #include <soc/rtc_cntl_reg.h> //disable brownout problems
 #include <esp_http_server.h>
 
-
 Adafruit_MLX90640 mlx;
 camera_fb_t       fb;
-
-
-
 
 // low range of the sensor (this will be blue on the screen)
 #define MINTEMP (float)20
@@ -42,17 +38,13 @@ static const char* _STREAM_PART         = "Content-Type: image/jpeg\r\nContent-L
 httpd_handle_t stream_httpd = NULL;
 static uint    sent         = 0;
 
-
-
-
 bool fmt_2_jpg(uint8_t* src, size_t src_len, uint16_t width, uint16_t height, pixformat_t format, uint8_t quality, uint8_t** out, size_t* out_len) {
-    int      jpg_buf_len = 64 * 1024;
+    int      jpg_buf_len = 32 * 1024;
     uint8_t* jpg_buf     = (uint8_t*)malloc(jpg_buf_len);
     if (jpg_buf == NULL) {
         return false;
     }
 
-    Serial.println("Succesfull malloc..");
     memory_stream dst_stream(jpg_buf, jpg_buf_len);
 
     if (!convert_image(src, width, height, format, quality, &dst_stream)) {
@@ -77,37 +69,22 @@ static esp_err_t stream_handler(httpd_req_t* req) {
     char*     part_buf[64];
 
     res = httpd_resp_set_type(req, _STREAM_CONTENT_TYPE);
-    if (res != ESP_OK) {
-        Serial.print("1Res esp: ");
-        Serial.println(res);
+    if (res != ESP_OK)
         return res;
-    }
-
-    if (mlx.getFrame(frame) != 0) {
-        Serial.println("Failed");
-    } else {
-        Serial.println("Got a frame..");
-    }
 
     Serial.println("Start While loop");
     while (true) {
         uint32_t timestamp = millis();
-        Serial.print("foto: ");
-        Serial.println(sent++);
-        // ! somehow here it goes wrong, when taking the second frame it crashes
-        // if (mlx.getFrame(frame) != 0) {
-        //     Serial.println("Failed");
-        // } else {
-        //     Serial.println("Got a frame..");
-        // }
-
-        Serial.println("Foto:");
+        // Serial.print("foto: ");
+        // Serial.println(sent++);
+        if (mlx.getFrame(frame) != 0) {
+            Serial.println("Failed");
+        }
         int colorTemp;
         for (uint8_t h = 0; h < 24; h++) {
             for (uint8_t w = 0; w < 32; w++) {
                 float t = frame[h * 32 + w];
-                // Serial.print(t, 1);
-                // Serial.print(", ");
+                // Serial.print(t, 1); Serial.print(", ");
 
                 t = min(t, MAXTEMP);
                 t = max(t, MINTEMP);
@@ -116,49 +93,37 @@ static esp_err_t stream_handler(httpd_req_t* req) {
                 colorIndex         = constrain(colorIndex, 0, 255);
 
                 fb.buf[h * 32 + w] = (uint8_t)camColors[colorIndex];
-                // Serial.print(fb.buf[h * 32 + w]);
             }
         }
-        Serial.println("");
 
         bool jpeg_converted = frame_2_jpg(&fb, 80, &_jpg_buf, &_jpg_buf_len);
 
         if (!jpeg_converted) {
             Serial.println("JPEG compression failed");
             res = ESP_FAIL;
-        } else {
-            Serial.println("JPEG compression success");
         }
 
         if (res == ESP_OK) {
             size_t hlen = snprintf((char*)part_buf, 64, _STREAM_PART, _jpg_buf_len);
             res         = httpd_resp_send_chunk(req, (const char*)part_buf, hlen);
-            Serial.print("2Res esp: ");
-            Serial.println(res);
         }
         if (res == ESP_OK) {
             res = httpd_resp_send_chunk(req, (const char*)_jpg_buf, _jpg_buf_len);
-            Serial.print("3Res esp: ");
-            Serial.println(res);
         }
         if (res == ESP_OK) {
             res = httpd_resp_send_chunk(req, _STREAM_BOUNDARY, strlen(_STREAM_BOUNDARY));
-            Serial.print("4Res esp: ");
-            Serial.println(res);
         }
-
 
         if (_jpg_buf) {
             free(_jpg_buf);
             _jpg_buf = NULL;
         }
-        // if (res != ESP_OK) {
-        //     break;
-        // }
-        Serial.printf("MJPG: %uB\n", (uint32_t)(_jpg_buf_len));
-        Serial.print((millis() - timestamp) / 2);
-        Serial.println(" ms per frame (2 frames per display)");
-
+        if (res != ESP_OK) {
+            return res;
+        }
+        // Serial.printf("MJPG: %uB\n", (uint32_t)(_jpg_buf_len));
+        // Serial.print((millis() - timestamp) / 2);
+        // Serial.println(" ms per frame (2 frames per display)");
     }
     return res;
 }
@@ -234,4 +199,9 @@ void setup() {
 void loop() {
 
     delay(1);
+    if (mlx.getFrame(frame) != 0) {
+        Serial.println("Failed");
+    } else {
+        Serial.println("Got a frame..");
+    }
 }
