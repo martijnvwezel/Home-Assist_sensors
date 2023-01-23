@@ -23,10 +23,14 @@ Adafruit_MLX90640 mlx;
 camera_fb_t       fb;
 
 // low range of the sensor (this will be blue on the screen)
-#define MINTEMP (float)20
-
+static int MINTEMP = 15;
 // high range of the sensor (this will be red on the screen)
-#define MAXTEMP (float)35
+static int MAXTEMP = 30;
+
+// after 5 frames the frame is generating a new value
+static int no_frames_handled = 5;
+static int average_frames    = 25; // average of the frame temp
+static int average_frame_ind = 0;  // idex
 
 float frame[32 * 24]; // buffer for full frame of temperatures
 
@@ -39,7 +43,7 @@ httpd_handle_t stream_httpd = NULL;
 static uint    sent         = 0;
 
 bool fmt_2_jpg(uint8_t* src, size_t src_len, uint16_t width, uint16_t height, pixformat_t format, uint8_t quality, uint8_t** out, size_t* out_len) {
-    int      jpg_buf_len = 32 * 1024;
+    int      jpg_buf_len = 8 * 1024;
     uint8_t* jpg_buf     = (uint8_t*)malloc(jpg_buf_len);
     if (jpg_buf == NULL) {
         return false;
@@ -79,20 +83,67 @@ static esp_err_t stream_handler(httpd_req_t* req) {
         // Serial.println(sent++);
         if (mlx.getFrame(frame) != 0) {
             Serial.println("Failed");
+
+            Serial.println("Adafruit MLX90640 Camera");
+            if (!mlx.begin(MLX90640_I2CADDR_DEFAULT, &Wire)) {
+                Serial.println("Not Found Adafruit MLX90640");
+            } else {
+                Serial.println("Found Adafruit MLX90640");
+            }
+            Serial.print("Serial number: ");
+            Serial.print(mlx.serialNumber[0], HEX);
+            Serial.print(mlx.serialNumber[1], HEX);
+            Serial.println(mlx.serialNumber[2], HEX);
+
+            mlx.setMode(MLX90640_CHESS);
+            mlx.setResolution(MLX90640_ADC_18BIT);
+            mlx.setRefreshRate(MLX90640_8_HZ);
+            Wire.setClock(1000000); // max 1 MHz
         }
+
+        // // after 5 frames the frame is generating a new value
+        // static int no_frames_handled = 5;
+        // static int average_frames
+        // static int average_frame_ind = 0; // idex
+
+        int16_t temp_value = 0;
+        for (uint16_t i = 0; i < 24 * 32; i++) {
+            temp_value = temp_value + (int16_t)frame[i];
+        }
+
+        average_frames = average_frames + temp_value / (24 * 32);
+
+        if (++no_frames_handled >= 5) {
+            no_frames_handled = 0;
+            average_frames    = average_frames / 5;
+
+            MAXTEMP = average_frames + 7;
+            MINTEMP = average_frames - 7;
+
+            MAXTEMP = min(MAXTEMP, 80);
+            MINTEMP = max(MINTEMP, -25);
+
+            Serial.print(MAXTEMP);
+            Serial.print(", ");
+            Serial.print(MINTEMP);
+            Serial.println("");
+
+            average_frames = 0;
+        }
+
         int colorTemp;
         for (uint8_t h = 0; h < 24; h++) {
             for (uint8_t w = 0; w < 32; w++) {
                 float t = frame[h * 32 + w];
                 // Serial.print(t, 1); Serial.print(", ");
 
-                t = min(t, MAXTEMP);
-                t = max(t, MINTEMP);
+                t = min((int)t, MAXTEMP);
+                t = max((int)t, MINTEMP);
 
                 uint8_t colorIndex = map(t, MINTEMP, MAXTEMP, 0, 255);
                 colorIndex         = constrain(colorIndex, 0, 255);
 
-                fb.buf[h * 32 + w] = (uint8_t)camColors[colorIndex];
+                fb.buf[h * 32 + w] = (uint8_t)(camColors[colorIndex] & 0xFF);
             }
         }
 
@@ -155,11 +206,11 @@ void setup() {
     // Serial.println(jpg_buf);
 
     uint8_t buffer[32 * 24];
-    fb.buf    = buffer;              /*!< Pointer to the pixel data */
-    fb.len    = 24 * 32;             /*!< Length of the buffer in bytes */
-    fb.width  = 32;                  /*!< Width of the buffer in pixels */
-    fb.height = 24;                  /*!< Height of the buffer in pixels */
-    fb.format = PIXFORMAT_GRAYSCALE; /*!< Format of the pixel data */
+    fb.buf    = buffer;           /*!< Pointer to the pixel data */
+    fb.len    = 24 * 32;          /*!< Length of the buffer in bytes */
+    fb.width  = 32;               /*!< Width of the buffer in pixels */
+    fb.height = 24;               /*!< Height of the buffer in pixels */
+    fb.format = PIXFORMAT_RGB565; /*!< Format of the pixel data */
     // fb.timeval           = 0;                   /*!< Timestamp since boot of the first DMA buffer of the frame */
 
     delay(100);
@@ -204,4 +255,11 @@ void loop() {
     } else {
         Serial.println("Got a frame..");
     }
+}
+
+// * Following needed for platform io, remove when using Arduino IDE
+int main() {
+    setup();
+    loop();
+    return 1;
 }

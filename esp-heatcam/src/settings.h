@@ -94,12 +94,12 @@ static IRAM_ATTR void convert_line_format(uint8_t* src, pixformat_t format, uint
             dst[o++] = src[i];
         }
     } else if (format == PIXFORMAT_RGB565) {
-        l = width * 2;
+        l = width ;
         src += l * line;
-        for (i = 0; i < l; i += 2) {
+        for (i = 0; i < l; i += 1) {
             dst[o++] = src[i] & 0xF8;
-            dst[o++] = (src[i] & 0x07) << 5 | (src[i + 1] & 0xE0) >> 3;
-            dst[o++] = (src[i + 1] & 0x1F) << 3;
+            dst[o++] = (src[i] & 0x07) << 5 | (src[i] & 0xE0) >> 3;
+            dst[o++] = (src[i] & 0x1F) << 3;
         }
     }
 }

@@ -12,7 +12,8 @@ Connect any compatible OpenTerm CV with Home Assistant. Using MQTT
 
 # ESP thermal-camera
 The thermal camera is connected using the esp to wifi. Goal is to make a hotspot people can join to go to the webpage to stream the realtime camera.
-
+[See blogpost](https://martijnvwezel.com/blogs/esp32_heatcamera/)
+<img src="https://martijnvwezel.com/img/heatcamera/Heatcamera.png" alt="side" height="350" class="center"/>
 # installations for Arduino IDE:
 
 Under additional board manager URL's:
