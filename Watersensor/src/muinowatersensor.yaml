@@ -1,0 +1,17 @@
+esphome:
+  name: muino_water_sensor
+  includes:
+    - MuinoWaterSensor.h
+
+custom_component:
+- lambda: |-
+    auto muino_water = new MuinoWaterSensor();
+    return {muino_water};
+  components:
+  - id: MuinoWaterSensor_id
+
+esp32:
+  board: esp32-c3-devkitm-1
+  framework:
+    type: arduino
+

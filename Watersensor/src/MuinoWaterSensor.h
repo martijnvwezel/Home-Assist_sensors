@@ -33,7 +33,7 @@ public:
         }
 
 
-      if (temp != this->under_value){
+      if (temp != this.under_value){
         publish("MuinoWaterSensor/pulse", 500); // * value in mililiters
 
         this.mili_liters_total = this.mili_liters_total + 500;
