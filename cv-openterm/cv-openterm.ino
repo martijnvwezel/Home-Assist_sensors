@@ -352,7 +352,7 @@ void loop() {
         }
 
         lastSpSet   = millis();
-        op_override = noCommandSpOverride;
+        // op_override = noCommandSpOverride; // just disable the override, for temp failure
     } else {
         failFlag = false;
     }
